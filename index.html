@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WC Manager V10.1</title>
+<title>WC Manager V13</title>
 
 <style>
 body { margin:0; font-family:Arial; background:#0a1428; color:white; text-align:center; }
@@ -12,26 +12,20 @@ body { margin:0; font-family:Arial; background:#0a1428; color:white; text-align:
 header { background:#1e3a8a; padding:10px; font-weight:bold; }
 .card { background:#1f2937; margin:6px; padding:10px; border-radius:8px; cursor:pointer; }
 .btn { padding:10px; margin:5px; background:#2563eb; border:none; color:white; border-radius:8px; }
-.smallbtn { padding:6px; margin:3px; font-size:12px; }
+.smallbtn { padding:6px; font-size:12px; margin:3px; }
 .log { height:160px; overflow:auto; background:#111827; text-align:left; padding:8px; font-size:13px; }
-.score { font-size:36px; margin:10px; }
-.bar { height:10px; background:#22c55e; }
+.score { font-size:38px; margin:10px; }
 .container { background:#1f2937; margin:10px; padding:6px; border-radius:6px; }
+.bar { height:10px; background:#22c55e; }
 </style>
 </head>
 
 <body>
 
 <div id="menu" class="screen active">
-<header>WC MANAGER V10.1</header>
-<h3>Select Your Nation</h3>
+<header>WC MANAGER V13</header>
+<h3>Select Team</h3>
 <div id="teams"></div>
-</div>
-
-<div id="groups" class="screen">
-<header>GROUP STAGE</header>
-<div id="table"></div>
-<button class="btn" onclick="startNextMatch()">Play Match</button>
 </div>
 
 <div id="match" class="screen">
@@ -49,9 +43,9 @@ Possession
 <div class="score" id="score">0 - 0</div>
 
 <div>
-<button class="btn smallbtn" onclick="tactic('attack')">ATTACK</button>
-<button class="btn smallbtn" onclick="tactic('balanced')">BALANCED</button>
-<button class="btn smallbtn" onclick="tactic('defend')">DEFEND</button>
+<button class="btn smallbtn" onclick="setTactic('attack')">ATTACK</button>
+<button class="btn smallbtn" onclick="setTactic('balanced')">BALANCED</button>
+<button class="btn smallbtn" onclick="setTactic('defend')">DEFEND</button>
 </div>
 
 <div class="log" id="log"></div>
@@ -61,101 +55,70 @@ Possession
 
 <script>
 
-// ================= FLAGS =================
+// ================= TEAMS =================
 const FLAGS = {
-"Brazil":"🇧🇷","Argentina":"🇦🇷","France":"🇫🇷","England":"🏴","Germany":"🇩🇪",
-"Spain":"🇪🇸","Portugal":"🇵🇹","Italy":"🇮🇹","Netherlands":"🇳🇱","Belgium":"🇧🇪",
-"Croatia":"🇭🇷","Uruguay":"🇺🇾","Colombia":"🇨🇴","USA":"🇺🇸","Mexico":"🇲🇽",
-"Canada":"🇨🇦","Japan":"🇯🇵","South Korea":"🇰🇷","Morocco":"🇲🇦","Senegal":"🇸🇳",
-"Nigeria":"🇳🇬","Egypt":"🇪🇬","Australia":"🇦🇺","Switzerland":"🇨🇭","Denmark":"🇩🇰",
-"Poland":"🇵🇱","Serbia":"🇷🇸","Turkey":"🇹🇷","Norway":"🇳🇴","Sweden":"🇸🇪",
-"Ukraine":"🇺🇦","Algeria":"🇩🇿","Tunisia":"🇹🇳","Cameroon":"🇨🇲","Ghana":"🇬🇭",
-"Peru":"🇵🇪","Chile":"🇨🇱","Ecuador":"🇪🇨","Paraguay":"🇵🇾","Venezuela":"🇻🇪",
-"Iran":"🇮🇷","Saudi Arabia":"🇸🇦","Qatar":"🇶🇦","Iraq":"🇮🇶"
+Brazil:"🇧🇷",Argentina:"🇦🇷",France:"🇫🇷",England:"🏴",
+Germany:"🇩🇪",Spain:"🇪🇸",Portugal:"🇵🇹",Italy:"🇮🇹",
+Netherlands:"🇳🇱",Belgium:"🇧🇪",USA:"🇺🇸",Mexico:"🇲🇽",
+Japan:"🇯🇵",South Korea:"🇰🇷",Morocco:"🇲🇦"
 };
 
-// ================= TEAMS =================
 const NATIONS = Object.keys(FLAGS);
 
-let TEAMS=[];
-let playerIndex=null;
-let groups={};
-let match=null;
-let interval=null;
+let TEAMS = [];
+let playerIndex = null;
 
-window.onload=()=>{
-TEAMS=NATIONS.map(n=>build(n));
-renderTeams();
+let match = null;
+let interval = null;
+
+// ================= INIT =================
+window.onload = () => {
+  TEAMS = NATIONS.map(n => createTeam(n));
+  renderTeams();
 };
 
-function build(name){
+function createTeam(name){
 return {
 name,
-flag:FLAGS[name],
-group:String.fromCharCode(65+Math.floor(Math.random()*12)),
+flag: FLAGS[name],
+att: 70 + Math.random()*20,
+mid: 65 + Math.random()*20,
+def: 60 + Math.random()*20,
 players:[
-{att:80+Math.random()*10,def:60},
-{att:70+Math.random()*10,def:70},
-{att:60+Math.random()*10,def:80}
+{name:"ST",att:85},
+{name:"LW",att:80},
+{name:"RW",att:78},
+{name:"CM",att:72},
+{name:"CB",att:68}
 ]
 };
 }
 
 // ================= UI =================
 function renderTeams(){
-let div=document.getElementById("teams");
+let div = document.getElementById("teams");
+
 TEAMS.forEach((t,i)=>{
-let d=document.createElement("div");
-d.className="card";
-d.innerHTML=t.flag+" "+t.name;
-d.onclick=()=>select(i);
+let d = document.createElement("div");
+d.className = "card";
+d.innerHTML = t.flag + " " + t.name;
+d.onclick = () => selectTeam(i);
 div.appendChild(d);
 });
 }
 
-function select(i){
-playerIndex=i;
-buildGroups();
-show("groups");
-renderGroups();
-}
-
-// ================= GROUPS =================
-function buildGroups(){
-groups={};
-for(let i=0;i<12;i++) groups[String.fromCharCode(65+i)]=[];
-
-TEAMS.forEach((t,i)=>{
-groups[String.fromCharCode(65+(i%12))].push({...t,pts:0});
-});
-}
-
-function renderGroups(){
-let html="";
-Object.keys(groups).forEach(g=>{
-html+="<h3>Group "+g+"</h3>";
-groups[g].forEach(t=>{
-html+=`<div>${t.flag} ${t.name}</div>`;
-});
-});
-document.getElementById("table").innerHTML=html;
+function selectTeam(i){
+playerIndex = i;
+startMatch();
+show("match");
 }
 
 // ================= MATCH ENGINE =================
 function power(t){
-let a=0,d=0;
-t.players.forEach(p=>{
-a+=p.att; d+=p.def;
-});
-return {att:a/3,def:d/3};
+return t.att*0.5 + t.mid*0.3 + t.def*0.2;
 }
 
-function possession(a,b){
-let A=power(a),B=power(b);
-return 50+(A.att-B.att)*0.3;
-}
-
-function scorer(team){
+function pickScorer(team){
 let pool=[];
 team.players.forEach(p=>{
 for(let i=0;i<p.att;i++) pool.push(p);
@@ -164,95 +127,142 @@ return pool[Math.floor(Math.random()*pool.length)];
 }
 
 // ================= MATCH =================
-function startMatch(a,b){
-match={
+function startMatch(){
+
+let a = TEAMS[playerIndex];
+let b = TEAMS[(playerIndex+1)%TEAMS.length];
+
+match = {
 a,b,
-ga:0,gb:0,
+ga:0, gb:0,
 min:0,
 pos:50,
-tacticA:"balanced",
-tacticB:"balanced",
-log:[]
+log:[],
+tactic:"balanced",
+stateA:{pressure:30,fatigue:0,momentum:0},
+stateB:{pressure:30,fatigue:0,momentum:0}
 };
 
-show("match");
-
-document.getElementById("title").innerText=
+document.getElementById("title").innerText =
 a.flag+" "+a.name+" vs "+b.flag+" "+b.name;
 
-interval=setInterval(sim,200);
+interval = setInterval(sim, 180);
 }
 
-function sim(){
-
-match.min++;
-document.getElementById("min").innerText=match.min;
-
-let A=power(match.a);
-let B=power(match.b);
-
-// tactics effect
-if(match.tacticA==="attack") A.att+=5;
-if(match.tacticA==="defend") A.def+=5;
-
-// possession drift
-match.pos=possession(match.a,match.b)+(Math.random()*10-5);
-
-// events
-if(Math.random()<0.07){
-
-let chance=A.att/(A.att+B.def);
-
-if(Math.random()<chance){
-
-match.ga++;
-let s=scorer(match.a);
-match.log.push("⚽ "+match.a.flag+" "+s.att.toFixed(0)+" scores");
-
-}else{
-
-if(Math.random()<0.3){
-match.gb++;
-let s=scorer(match.b);
-match.log.push("⚽ "+match.b.flag+" goal!");
-}else{
-match.log.push("❌ miss");
-}
-
-}
-}
-
-update();
-
-if(match.min>=90) clearInterval(interval);
-}
-
-function tactic(t){
-match.tacticA=t;
+// ================= TACTICS =================
+function setTactic(t){
+match.tactic = t;
 match.log.push("🧠 tactic: "+t);
 }
 
-function update(){
-document.getElementById("score").innerText=
-match.ga+" - "+match.gb;
+// ================= SIM ENGINE =================
+function sim(){
 
-document.getElementById("log").innerHTML=
+match.min++;
+document.getElementById("min").innerText = match.min;
+
+let A = match.a;
+let B = match.b;
+
+let pA = power(A);
+let pB = power(B);
+
+// tactics
+if(match.tactic === "attack"){
+pA *= 1.15;
+match.stateA.fatigue += 0.6;
+}
+
+if(match.tactic === "defend"){
+pA *= 0.9;
+match.stateA.fatigue += 0.3;
+}
+
+// possession
+let total = pA + pB;
+let posA = pA / total;
+
+posA += match.stateA.momentum * 0.01;
+posA -= match.stateB.momentum * 0.01;
+
+posA = Math.max(0.25, Math.min(0.75, posA));
+
+match.pos = posA * 100;
+
+// pressure
+match.stateA.pressure += posA * 2;
+match.stateB.pressure += (1-posA) * 2;
+
+match.stateA.fatigue += 0.2;
+match.stateB.fatigue += 0.2;
+
+function chance(att,def,press,fat){
+let c = att/(att+def);
+c *= press/100;
+c *= (1 - fat/200);
+return c;
+}
+
+let cA = chance(pA,pB,match.stateA.pressure,match.stateA.fatigue);
+let cB = chance(pB,pA,match.stateB.pressure,match.stateB.fatigue);
+
+if(Math.random() < 0.10){
+
+if(Math.random() < cA){
+
+if(Math.random() < 0.35){
+
+match.ga++;
+let s = pickScorer(match.a);
+match.log.push("⚽ "+match.a.flag+" "+s.name+" scores");
+
+match.stateA.momentum += 3;
+match.stateB.momentum -= 2;
+
+}else{
+match.log.push("❌ chance missed");
+}
+
+}else if(Math.random() < cB * 0.6){
+
+if(Math.random() < 0.30){
+
+match.gb++;
+let s = pickScorer(match.b);
+match.log.push("⚽ "+match.b.flag+" counter goal");
+
+match.stateB.momentum += 3;
+match.stateA.momentum -= 2;
+
+}else{
+match.log.push("❌ counter miss");
+}
+
+}
+}
+
+match.stateA.momentum *= 0.97;
+match.stateB.momentum *= 0.97;
+
+update();
+
+if(match.min >= 90){
+clearInterval(interval);
+match.log.push("⏱ Full Time");
+}
+
+}
+
+// ================= UI UPDATE =================
+function update(){
+document.getElementById("score").innerText =
+match.ga + " - " + match.gb;
+
+document.getElementById("log").innerHTML =
 match.log.slice(-6).join("<br>");
 
-document.getElementById("posBar").style.width=
-match.pos+"%";
-}
-
-function startNextMatch(){
-let a=TEAMS[playerIndex];
-let b=TEAMS[(playerIndex+3)%TEAMS.length];
-startMatch(a,b);
-}
-
-function endMatch(){
-clearInterval(interval);
-show("groups");
-renderGroups();
+document.getElementById("posBar").style.width =
+match.pos + "%";
 }
 
 // ================= UTIL =================
@@ -260,6 +270,11 @@ function show(id){
 document.querySelectorAll(".screen")
 .forEach(s=>s.classList.remove("active"));
 document.getElementById(id).classList.add("active");
+}
+
+function endMatch(){
+clearInterval(interval);
+show("menu");
 }
 
 </script>
