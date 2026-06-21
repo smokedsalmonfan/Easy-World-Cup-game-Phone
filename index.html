@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WC Manager V9</title>
+<title>WC Manager V9.1</title>
 
 <style>
 body { margin:0; font-family:Arial; background:#0a1428; color:white; text-align:center; }
 .screen { display:none; padding:10px; }
 .screen.active { display:block; }
 header { background:#1e3a8a; padding:10px; font-weight:bold; }
+.card { background:#1f2937; margin:6px; padding:10px; border-radius:8px; cursor:pointer; }
 .btn { padding:10px; margin:5px; background:#2563eb; border:none; color:white; border-radius:8px; }
-.card { background:#1f2937; margin:5px; padding:8px; border-radius:6px; }
 .log { height:180px; overflow:auto; background:#111827; text-align:left; padding:8px; font-size:13px; }
 .score { font-size:34px; margin:10px; }
 .bar { height:10px; background:#22c55e; }
@@ -22,7 +22,7 @@ header { background:#1e3a8a; padding:10px; font-weight:bold; }
 <body>
 
 <div id="menu" class="screen active">
-<header>WC MANAGER V9 — 48 TEAM WORLD CUP</header>
+<header>WC MANAGER V9.1 — FIXED</header>
 <h3>Select Your Team</h3>
 <div id="teams"></div>
 </div>
@@ -42,7 +42,6 @@ Possession
 </div>
 
 <div class="score" id="score">0 - 0</div>
-
 <div class="log" id="log"></div>
 
 <button class="btn" onclick="endMatch()">Exit</button>
@@ -50,23 +49,32 @@ Possession
 
 <script>
 
-// ================= REALISTIC 48-TEAM POOL =================
 const NATIONS = [
-"Brazil","Argentina","France","England","Germany","Spain","Portugal","Italy","Netherlands","Belgium","Croatia","Uruguay","Colombia","Chile","Peru","Ecuador","Paraguay","Venezuela",
-"USA","Mexico","Canada","Costa Rica","Panama","Honduras","Jamaica",
-"Morocco","Senegal","Nigeria","Egypt","Algeria","Tunisia","Cameroon","Ghana","Ivory Coast","Mali",
-"Japan","South Korea","Iran","Saudi Arabia","Australia","Qatar","Uzbekistan","Iraq",
-"Norway","Sweden","Denmark","Switzerland","Poland","Serbia","Ukraine","Turkey"
+"Brazil","Argentina","France","England","Germany","Spain","Portugal","Italy",
+"Netherlands","Belgium","Croatia","Uruguay","Colombia","Chile","Peru","Ecuador",
+"USA","Mexico","Canada","Morocco","Senegal","Nigeria","Egypt","Japan",
+"South Korea","Iran","Saudi Arabia","Australia","Switzerland","Denmark",
+"Poland","Serbia","Ukraine","Turkey","Norway","Sweden","Costa Rica","Panama",
+"Jamaica","Qatar","Algeria","Tunisia","Ghana","Cameroon","Mali","Paraguay",
+"Venezuela","Iraq"
 ];
 
-// ================= TEAM BUILDER =================
-function buildTeam(name){
-let base = Math.random();
+let TEAMS=[];
+let playerTeam=null;
+let groups={};
+let match=null;
+let interval=null;
 
+// IMPORTANT FIX: wait for DOM
+window.onload = function(){
+  TEAMS = NATIONS.map(n=>buildTeam(n));
+  renderTeams();
+};
+
+function buildTeam(name){
 return {
 name,
 group:String.fromCharCode(65+Math.floor(Math.random()*12)),
-style: base>0.6?"attack":base>0.3?"balanced":"defensive",
 players:[
 {role:"ST",att:75+Math.random()*20,fin:75+Math.random()*20,def:30},
 {role:"MID",att:65+Math.random()*20,fin:65+Math.random()*20,def:70},
@@ -75,16 +83,10 @@ players:[
 };
 }
 
-const TEAMS = NATIONS.map(n=>buildTeam(n));
-
-let playerTeam=null;
-let groups={};
-let match=null;
-let interval=null;
-
-// ================= INIT =================
-function init(){
+function renderTeams(){
 let div=document.getElementById("teams");
+div.innerHTML="";
+
 TEAMS.forEach((t,i)=>{
 let d=document.createElement("div");
 d.className="card";
@@ -101,11 +103,8 @@ show("groups");
 renderGroups();
 }
 
-// ================= GROUPS =================
 function buildGroups(){
 groups={};
-
-// FIXED 12 GROUPS A–L
 for(let i=0;i<12;i++) groups[String.fromCharCode(65+i)]=[];
 
 TEAMS.forEach((t,i)=>{
@@ -118,24 +117,23 @@ let html="";
 Object.keys(groups).forEach(g=>{
 html+="<h3>Group "+g+"</h3>";
 groups[g].forEach(t=>{
-html+=`<div>${t.name} ${t.pts} pts</div>`;
+html+=`<div>${t.name}</div>`;
 });
 });
 document.getElementById("table").innerHTML=html;
 }
 
-// ================= ENGINE =================
 function power(t){
 let a=0,f=0,d=0;
 t.players.forEach(p=>{
 a+=p.att; f+=p.fin; d+=p.def;
 });
-return {att:a/3, fin:f/3, def:d/3};
+return {att:a/3,fin:f/3,def:d/3};
 }
 
 function possession(a,b){
-let A=power(a), B=power(b);
-return 50 + (A.att - B.att)*0.25;
+let A=power(a),B=power(b);
+return 50+(A.att-B.att)*0.25;
 }
 
 function scorer(team){
@@ -147,16 +145,15 @@ for(let i=0;i<w;i++) pool.push(p);
 return pool[Math.floor(Math.random()*pool.length)];
 }
 
-// ================= MATCH =================
 function startMatch(a,b){
 
-match={a,b,ga=0,gb=0,min:0,log:[],pos:50};
+match={a,b,ga:0,gb:0,min:0,log:[],pos:50};
 
 show("match");
 document.getElementById("title").innerText=
 a.name+" vs "+b.name;
 
-interval=setInterval(sim,210);
+interval=setInterval(sim,200);
 }
 
 function sim(){
@@ -168,7 +165,6 @@ let B=power(match.b);
 
 match.pos=possession(match.a,match.b);
 
-// attack phase (reduced frequency for realism)
 if(Math.random()<0.08){
 
 let aChance=A.att/(A.att+B.def);
@@ -178,9 +174,9 @@ if(Math.random()<aChance){
 if(Math.random()<0.30){
 match.ga++;
 let s=scorer(match.a);
-match.log.push("⚽ "+s.role+" scores for "+match.a.name);
+match.log.push("⚽ "+s.role+" scores "+match.a.name);
 }else{
-match.log.push("🧤 Save by "+match.b.name);
+match.log.push("🧤 Save");
 }
 
 }else{
@@ -188,9 +184,9 @@ match.log.push("🧤 Save by "+match.b.name);
 if(Math.random()<0.28){
 match.gb++;
 let s=scorer(match.b);
-match.log.push("⚽ "+s.role+" scores for "+match.b.name);
+match.log.push("⚽ "+s.role+" scores "+match.b.name);
 }else{
-match.log.push("❌ Miss!");
+match.log.push("❌ Miss");
 }
 
 }
@@ -201,7 +197,6 @@ update();
 if(match.min>90) clearInterval(interval);
 }
 
-// ================= UI =================
 function update(){
 document.getElementById("score").innerText=
 match.ga+" - "+match.gb;
@@ -213,9 +208,8 @@ document.getElementById("posBar").style.width=
 match.pos+"%";
 }
 
-// ================= FLOW =================
 function playMatch(){
-startMatch(TEAMS[0],TEAMS[1]);
+startMatch(TEAMS[playerTeam],TEAMS[(playerTeam+1)%TEAMS.length]);
 }
 
 function endMatch(){
@@ -224,14 +218,11 @@ show("groups");
 renderGroups();
 }
 
-// ================= UTIL =================
 function show(id){
 document.querySelectorAll(".screen")
 .forEach(s=>s.classList.remove("active"));
 document.getElementById(id).classList.add("active");
 }
-
-init();
 
 </script>
 
