@@ -3,28 +3,115 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WC Manager V13</title>
+<title>WC Manager V14 Arcade</title>
 
 <style>
-body { margin:0; font-family:Arial; background:#0a1428; color:white; text-align:center; }
+body {
+margin:0;
+font-family:"Courier New", monospace;
+background:#050816;
+color:#00ff99;
+text-align:center;
+}
+
+/* CRT scanlines */
+body::before {
+content:"";
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background: repeating-linear-gradient(
+0deg,
+rgba(255,255,255,0.03),
+rgba(255,255,255,0.03) 1px,
+transparent 1px,
+transparent 3px
+);
+pointer-events:none;
+z-index:999;
+}
+
+body::after {
+content:"";
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background: radial-gradient(circle at center, rgba(0,255,153,0.05), transparent 70%);
+pointer-events:none;
+z-index:998;
+}
+
 .screen { display:none; padding:10px; }
 .screen.active { display:block; }
-header { background:#1e3a8a; padding:10px; font-weight:bold; }
-.card { background:#1f2937; margin:6px; padding:10px; border-radius:8px; cursor:pointer; }
-.btn { padding:10px; margin:5px; background:#2563eb; border:none; color:white; border-radius:8px; }
-.smallbtn { padding:6px; font-size:12px; margin:3px; }
-.log { height:160px; overflow:auto; background:#111827; text-align:left; padding:8px; font-size:13px; }
-.score { font-size:38px; margin:10px; }
-.container { background:#1f2937; margin:10px; padding:6px; border-radius:6px; }
-.bar { height:10px; background:#22c55e; }
+
+header {
+background:#0b1b3a;
+padding:10px;
+color:#00e5ff;
+text-shadow:0 0 10px #00e5ff;
+letter-spacing:2px;
+font-weight:bold;
+}
+
+.card {
+background:#0d1025;
+margin:6px;
+padding:10px;
+border:1px solid #00ff99;
+box-shadow:0 0 8px #00ff99;
+cursor:pointer;
+}
+
+.btn {
+padding:10px;
+margin:5px;
+background:#111a3a;
+border:1px solid #00e5ff;
+color:#00e5ff;
+text-transform:uppercase;
+box-shadow:0 0 8px #00e5ff;
+}
+
+.smallbtn { padding:6px; font-size:12px; }
+
+.score {
+font-size:44px;
+color:#ff00ff;
+text-shadow:0 0 10px #ff00ff;
+margin:10px;
+}
+
+.container {
+background:#0b0f24;
+margin:10px;
+padding:6px;
+border:1px solid #00ff99;
+}
+
+.bar {
+height:10px;
+background:linear-gradient(90deg,#00ff99,#00e5ff);
+box-shadow:0 0 10px #00ff99;
+}
+
+.log {
+height:160px;
+overflow:auto;
+background:#05060f;
+text-align:left;
+padding:8px;
+font-size:13px;
+border:1px solid #00ff99;
+color:#00ff99;
+}
 </style>
 </head>
 
 <body>
 
 <div id="menu" class="screen active">
-<header>WC MANAGER V13</header>
-<h3>Select Team</h3>
+<header>⚽ WC MANAGER V14 ⚽</header>
+<h3>Select Your Team</h3>
 <div id="teams"></div>
 </div>
 
@@ -50,12 +137,12 @@ Possession
 
 <div class="log" id="log"></div>
 
-<button class="btn" onclick="endMatch()">Exit</button>
+<button class="btn" onclick="endMatch()">EXIT</button>
 </div>
 
 <script>
 
-// ================= TEAMS =================
+// ================= FLAGS =================
 const FLAGS = {
 Brazil:"🇧🇷",Argentina:"🇦🇷",France:"🇫🇷",England:"🏴",
 Germany:"🇩🇪",Spain:"🇪🇸",Portugal:"🇵🇹",Italy:"🇮🇹",
@@ -67,14 +154,13 @@ const NATIONS = Object.keys(FLAGS);
 
 let TEAMS = [];
 let playerIndex = null;
-
 let match = null;
 let interval = null;
 
 // ================= INIT =================
 window.onload = () => {
-  TEAMS = NATIONS.map(n => createTeam(n));
-  renderTeams();
+TEAMS = NATIONS.map(n => createTeam(n));
+renderTeams();
 };
 
 function createTeam(name){
@@ -109,8 +195,14 @@ div.appendChild(d);
 
 function selectTeam(i){
 playerIndex = i;
-startMatch();
 show("match");
+startMatch();
+}
+
+function show(id){
+document.querySelectorAll(".screen")
+.forEach(s => s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
 }
 
 // ================= MATCH ENGINE =================
@@ -128,6 +220,8 @@ return pool[Math.floor(Math.random()*pool.length)];
 
 // ================= MATCH =================
 function startMatch(){
+
+if(interval) clearInterval(interval);
 
 let a = TEAMS[playerIndex];
 let b = TEAMS[(playerIndex+1)%TEAMS.length];
@@ -152,10 +246,10 @@ interval = setInterval(sim, 180);
 // ================= TACTICS =================
 function setTactic(t){
 match.tactic = t;
-match.log.push("🧠 tactic: "+t);
+match.log.push("🧠 "+t.toUpperCase());
 }
 
-// ================= SIM ENGINE =================
+// ================= SIM =================
 function sim(){
 
 match.min++;
@@ -168,15 +262,8 @@ let pA = power(A);
 let pB = power(B);
 
 // tactics
-if(match.tactic === "attack"){
-pA *= 1.15;
-match.stateA.fatigue += 0.6;
-}
-
-if(match.tactic === "defend"){
-pA *= 0.9;
-match.stateA.fatigue += 0.3;
-}
+if(match.tactic === "attack") pA *= 1.15;
+if(match.tactic === "defend") pA *= 0.9;
 
 // possession
 let total = pA + pB;
@@ -193,6 +280,7 @@ match.pos = posA * 100;
 match.stateA.pressure += posA * 2;
 match.stateB.pressure += (1-posA) * 2;
 
+// fatigue
 match.stateA.fatigue += 0.2;
 match.stateB.fatigue += 0.2;
 
@@ -211,50 +299,35 @@ if(Math.random() < 0.10){
 if(Math.random() < cA){
 
 if(Math.random() < 0.35){
-
 match.ga++;
 let s = pickScorer(match.a);
-match.log.push("⚽ "+match.a.flag+" "+s.name+" scores");
-
+match.log.push("⚽ "+match.a.flag+" "+s.name);
 match.stateA.momentum += 3;
 match.stateB.momentum -= 2;
-
 }else{
-match.log.push("❌ chance missed");
+match.log.push("❌ miss");
 }
 
 }else if(Math.random() < cB * 0.6){
 
 if(Math.random() < 0.30){
-
 match.gb++;
 let s = pickScorer(match.b);
-match.log.push("⚽ "+match.b.flag+" counter goal");
-
+match.log.push("⚽ "+match.b.flag+" counter");
 match.stateB.momentum += 3;
 match.stateA.momentum -= 2;
-
 }else{
 match.log.push("❌ counter miss");
 }
-
-}
 }
 
+}
+
+// decay
 match.stateA.momentum *= 0.97;
 match.stateB.momentum *= 0.97;
 
-update();
-
-if(match.min >= 90){
-clearInterval(interval);
-match.log.push("⏱ Full Time");
-}
-
-}
-
-// ================= UI UPDATE =================
-function update(){
+// UI
 document.getElementById("score").innerText =
 match.ga + " - " + match.gb;
 
@@ -263,15 +336,14 @@ match.log.slice(-6).join("<br>");
 
 document.getElementById("posBar").style.width =
 match.pos + "%";
+
+if(match.min >= 90){
+clearInterval(interval);
+match.log.push("⏱ FULL TIME");
+}
 }
 
-// ================= UTIL =================
-function show(id){
-document.querySelectorAll(".screen")
-.forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
-
+// ================= EXIT =================
 function endMatch(){
 clearInterval(interval);
 show("menu");
