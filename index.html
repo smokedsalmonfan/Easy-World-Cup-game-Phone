@@ -3,25 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WC Manager V6</title>
+<title>WC Manager V9</title>
 
 <style>
-body { margin:0; font-family:Arial; background:#0a1428; color:#fff; text-align:center; }
+body { margin:0; font-family:Arial; background:#0a1428; color:white; text-align:center; }
 .screen { display:none; padding:10px; }
 .screen.active { display:block; }
 header { background:#1e3a8a; padding:10px; font-weight:bold; }
-.btn { padding:10px; margin:5px; background:#2563eb; border:none; color:#fff; border-radius:8px; }
+.btn { padding:10px; margin:5px; background:#2563eb; border:none; color:white; border-radius:8px; }
 .card { background:#1f2937; margin:5px; padding:8px; border-radius:6px; }
-.log { height:160px; overflow:auto; background:#111827; text-align:left; padding:8px; font-size:13px; }
-.score { font-size:34px; }
+.log { height:180px; overflow:auto; background:#111827; text-align:left; padding:8px; font-size:13px; }
+.score { font-size:34px; margin:10px; }
+.bar { height:10px; background:#22c55e; }
+.container { background:#1f2937; margin:10px; padding:6px; border-radius:6px; }
 </style>
 </head>
 
 <body>
 
 <div id="menu" class="screen active">
-<header>WC MANAGER V6</header>
-<h3>Select Team</h3>
+<header>WC MANAGER V9 — 48 TEAM WORLD CUP</header>
+<h3>Select Your Team</h3>
 <div id="teams"></div>
 </div>
 
@@ -29,53 +31,51 @@ header { background:#1e3a8a; padding:10px; font-weight:bold; }
 <header>GROUP STAGE</header>
 <div id="table"></div>
 <button class="btn" onclick="playMatch()">Play Match</button>
-<button class="btn" onclick="showKnockout()">Knockout</button>
 </div>
 
 <div id="match" class="screen">
 <header id="title"></header>
+
+<div class="container">
+Possession
+<div id="posBar" class="bar" style="width:50%"></div>
+</div>
+
 <div class="score" id="score">0 - 0</div>
+
 <div class="log" id="log"></div>
+
 <button class="btn" onclick="endMatch()">Exit</button>
 </div>
 
 <script>
 
-// ================= FBREF-STYLE DATA =================
-const TEAMS = [
-{
-name:"Brazil",group:"A",style:"attack",
-players:[
-{name:"Vinícius Jr",att:94,fin:92,def:40,stam:88},
-{name:"Rodrygo",att:88,fin:86,def:45,stam:82},
-{name:"Casemiro",att:70,fin:65,def:92,stam:90}
-]
-},
-{
-name:"France",group:"A",style:"balanced",
-players:[
-{name:"Mbappé",att:96,fin:95,def:42,stam:92},
-{name:"Griezmann",att:88,fin:86,def:70,stam:85},
-{name:"Tchouaméni",att:72,fin:70,def:90,stam:88}
-]
-},
-{
-name:"England",group:"B",style:"balanced",
-players:[
-{name:"Kane",att:92,fin:95,def:50,stam:86},
-{name:"Saka",att:88,fin:86,def:60,stam:84},
-{name:"Bellingham",att:90,fin:84,def:82,stam:90}
-]
-},
-{
-name:"Argentina",group:"B",style:"attack",
-players:[
-{name:"Messi",att:95,fin:94,def:45,stam:75},
-{name:"Álvarez",att:88,fin:88,def:55,stam:84},
-{name:"De Paul",att:80,fin:78,def:80,stam:85}
-]
-}
+// ================= REALISTIC 48-TEAM POOL =================
+const NATIONS = [
+"Brazil","Argentina","France","England","Germany","Spain","Portugal","Italy","Netherlands","Belgium","Croatia","Uruguay","Colombia","Chile","Peru","Ecuador","Paraguay","Venezuela",
+"USA","Mexico","Canada","Costa Rica","Panama","Honduras","Jamaica",
+"Morocco","Senegal","Nigeria","Egypt","Algeria","Tunisia","Cameroon","Ghana","Ivory Coast","Mali",
+"Japan","South Korea","Iran","Saudi Arabia","Australia","Qatar","Uzbekistan","Iraq",
+"Norway","Sweden","Denmark","Switzerland","Poland","Serbia","Ukraine","Turkey"
 ];
+
+// ================= TEAM BUILDER =================
+function buildTeam(name){
+let base = Math.random();
+
+return {
+name,
+group:String.fromCharCode(65+Math.floor(Math.random()*12)),
+style: base>0.6?"attack":base>0.3?"balanced":"defensive",
+players:[
+{role:"ST",att:75+Math.random()*20,fin:75+Math.random()*20,def:30},
+{role:"MID",att:65+Math.random()*20,fin:65+Math.random()*20,def:70},
+{role:"DEF",att:40+Math.random()*10,fin:40+Math.random()*10,def:80}
+]
+};
+}
+
+const TEAMS = NATIONS.map(n=>buildTeam(n));
 
 let playerTeam=null;
 let groups={};
@@ -104,9 +104,12 @@ renderGroups();
 // ================= GROUPS =================
 function buildGroups(){
 groups={};
-TEAMS.forEach(t=>{
-if(!groups[t.group]) groups[t.group]=[];
-groups[t.group].push({...t,pts:0});
+
+// FIXED 12 GROUPS A–L
+for(let i=0;i<12;i++) groups[String.fromCharCode(65+i)]=[];
+
+TEAMS.forEach((t,i)=>{
+groups[String.fromCharCode(65+(i%12))].push({...t,pts:0});
 });
 }
 
@@ -122,72 +125,74 @@ document.getElementById("table").innerHTML=html;
 }
 
 // ================= ENGINE =================
-function teamPower(team){
-let a=0,f=0,d=0,s=0;
-
-team.players.forEach(p=>{
-a+=p.att;
-f+=p.fin;
-d+=p.def;
-s+=p.stam;
+function power(t){
+let a=0,f=0,d=0;
+t.players.forEach(p=>{
+a+=p.att; f+=p.fin; d+=p.def;
 });
-
-return {
-attack:a/team.players.length,
-fin:f/team.players.length,
-def:d/team.players.length,
-stam:s/team.players.length
-};
+return {att:a/3, fin:f/3, def:d/3};
 }
 
-function xG(att,def){
-return (att.attack*att.fin*att.stam) /
-((def.def*def.stam)+1);
+function possession(a,b){
+let A=power(a), B=power(b);
+return 50 + (A.att - B.att)*0.25;
+}
+
+function scorer(team){
+let pool=[];
+team.players.forEach(p=>{
+let w=p.att+p.fin;
+for(let i=0;i<w;i++) pool.push(p);
+});
+return pool[Math.floor(Math.random()*pool.length)];
 }
 
 // ================= MATCH =================
 function startMatch(a,b){
 
-match={a,b,ga:0,gb:0,min:0,log:[],subs:false};
+match={a,b,ga=0,gb=0,min:0,log:[],pos:50};
 
 show("match");
 document.getElementById("title").innerText=
 a.name+" vs "+b.name;
 
-interval=setInterval(sim,180);
+interval=setInterval(sim,210);
 }
 
 function sim(){
 
 match.min++;
 
-let A=teamPower(match.a);
-let B=teamPower(match.b);
+let A=power(match.a);
+let B=power(match.b);
 
-let aChance=xG(A,B);
-let bChance=xG(B,A);
+match.pos=possession(match.a,match.b);
 
-// fatigue drop
-A.stam-=0.05;
-B.stam-=0.05;
+// attack phase (reduced frequency for realism)
+if(Math.random()<0.08){
 
-// substitution trigger
-if(match.min===60 && !match.subs){
-match.subs=true;
-match.log.push("🔁 Tactical substitutions made");
-A.attack+=3;
-B.attack+=3;
+let aChance=A.att/(A.att+B.def);
+
+if(Math.random()<aChance){
+
+if(Math.random()<0.30){
+match.ga++;
+let s=scorer(match.a);
+match.log.push("⚽ "+s.role+" scores for "+match.a.name);
+}else{
+match.log.push("🧤 Save by "+match.b.name);
 }
 
-// goal logic
-if(Math.random()<0.10){
-
-if(Math.random()<aChance/(aChance+bChance)){
-match.ga++;
-match.log.push("⚽ "+match.a.players[0].name+" GOAL!");
 }else{
+
+if(Math.random()<0.28){
 match.gb++;
-match.log.push("⚽ "+match.b.players[0].name+" GOAL!");
+let s=scorer(match.b);
+match.log.push("⚽ "+s.role+" scores for "+match.b.name);
+}else{
+match.log.push("❌ Miss!");
+}
+
 }
 }
 
@@ -202,7 +207,10 @@ document.getElementById("score").innerText=
 match.ga+" - "+match.gb;
 
 document.getElementById("log").innerHTML=
-match.log.slice(-6).join("<br>");
+match.log.slice(-7).join("<br>");
+
+document.getElementById("posBar").style.width=
+match.pos+"%";
 }
 
 // ================= FLOW =================
@@ -229,4 +237,3 @@ init();
 
 </body>
 </html>
-q
