@@ -1,157 +1,232 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WC Manager 2026</title>
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0a1428">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="icon-192.png">
+<title>WC Manager V6</title>
 
 <style>
-body { margin:0; background:#0a1428; color:#fff; font-family:Arial; text-align:center; }
+body { margin:0; font-family:Arial; background:#0a1428; color:#fff; text-align:center; }
 .screen { display:none; padding:10px; }
 .screen.active { display:block; }
 header { background:#1e3a8a; padding:10px; font-weight:bold; }
-.btn { padding:10px; margin:5px; background:#2563eb; color:#fff; border:none; border-radius:8px; }
-.team { padding:8px; margin:5px; background:#1e2937; border-radius:6px; }
-.log { height:160px; overflow:auto; background:#111827; padding:8px; text-align:left; }
-.pitch { height:200px; background:#166534; margin:10px; position:relative; }
-.ball { width:12px; height:12px; background:#facc15; border-radius:50%; position:absolute; }
+.btn { padding:10px; margin:5px; background:#2563eb; border:none; color:#fff; border-radius:8px; }
+.card { background:#1f2937; margin:5px; padding:8px; border-radius:6px; }
+.log { height:160px; overflow:auto; background:#111827; text-align:left; padding:8px; font-size:13px; }
+.score { font-size:34px; }
 </style>
 </head>
 
 <body>
 
 <div id="menu" class="screen active">
-<header>WC MANAGER 2026</header>
+<header>WC MANAGER V6</header>
 <h3>Select Team</h3>
 <div id="teams"></div>
 </div>
 
 <div id="groups" class="screen">
-<header>GROUPS</header>
+<header>GROUP STAGE</header>
 <div id="table"></div>
-<button class="btn" onclick="nextMatchday()">Next Matchday</button>
+<button class="btn" onclick="playMatch()">Play Match</button>
+<button class="btn" onclick="showKnockout()">Knockout</button>
 </div>
 
 <div id="match" class="screen">
-<header id="matchTitle"></header>
-<div id="score" style="font-size:30px">0 - 0</div>
-<div class="pitch"><div class="ball" id="ball"></div></div>
+<header id="title"></header>
+<div class="score" id="score">0 - 0</div>
 <div class="log" id="log"></div>
-<button class="btn" onclick="endMatch()">End Match</button>
+<button class="btn" onclick="endMatch()">Exit</button>
 </div>
 
 <script>
-const teams = [
- {id:1,name:"Brazil",rating:88,group:"A"},
- {id:2,name:"France",rating:87,group:"A"},
- {id:3,name:"England",rating:85,group:"B"},
- {id:4,name:"Argentina",rating:89,group:"B"},
- {id:5,name:"Germany",rating:84,group:"C"},
- {id:6,name:"Spain",rating:86,group:"C"},
- {id:7,name:"Portugal",rating:83,group:"D"},
- {id:8,name:"Netherlands",rating:82,group:"D"}
+
+// ================= FBREF-STYLE DATA =================
+const TEAMS = [
+{
+name:"Brazil",group:"A",style:"attack",
+players:[
+{name:"Vinícius Jr",att:94,fin:92,def:40,stam:88},
+{name:"Rodrygo",att:88,fin:86,def:45,stam:82},
+{name:"Casemiro",att:70,fin:65,def:92,stam:90}
+]
+},
+{
+name:"France",group:"A",style:"balanced",
+players:[
+{name:"Mbappé",att:96,fin:95,def:42,stam:92},
+{name:"Griezmann",att:88,fin:86,def:70,stam:85},
+{name:"Tchouaméni",att:72,fin:70,def:90,stam:88}
+]
+},
+{
+name:"England",group:"B",style:"balanced",
+players:[
+{name:"Kane",att:92,fin:95,def:50,stam:86},
+{name:"Saka",att:88,fin:86,def:60,stam:84},
+{name:"Bellingham",att:90,fin:84,def:82,stam:90}
+]
+},
+{
+name:"Argentina",group:"B",style:"attack",
+players:[
+{name:"Messi",att:95,fin:94,def:45,stam:75},
+{name:"Álvarez",att:88,fin:88,def:55,stam:84},
+{name:"De Paul",att:80,fin:78,def:80,stam:85}
+]
+}
 ];
 
-let playerTeam = null;
-let groups = {};
-let currentMatch = null;
-let interval = null;
+let playerTeam=null;
+let groups={};
+let match=null;
+let interval=null;
 
-function init() {
-    let div = document.getElementById("teams");
-    teams.forEach(t=>{
-        let d = document.createElement("div");
-        d.className="team";
-        d.innerHTML=t.name;
-        d.onclick=()=>selectTeam(t.id);
-        div.appendChild(d);
-    });
+// ================= INIT =================
+function init(){
+let div=document.getElementById("teams");
+TEAMS.forEach((t,i)=>{
+let d=document.createElement("div");
+d.className="card";
+d.innerHTML=t.name;
+d.onclick=()=>select(i);
+div.appendChild(d);
+});
 }
 
-function selectTeam(id){
-    playerTeam=id;
-    buildGroups();
-    show("groups");
-    renderGroups();
+function select(i){
+playerTeam=i;
+buildGroups();
+show("groups");
+renderGroups();
 }
 
+// ================= GROUPS =================
 function buildGroups(){
-    groups={};
-    teams.forEach(t=>{
-        if(!groups[t.group]) groups[t.group]=[];
-        groups[t.group].push({...t,pts:0,gf:0,ga:0});
-    });
+groups={};
+TEAMS.forEach(t=>{
+if(!groups[t.group]) groups[t.group]=[];
+groups[t.group].push({...t,pts:0});
+});
 }
 
 function renderGroups(){
-    let html="";
-    Object.keys(groups).forEach(g=>{
-        html+="<h3>Group "+g+"</h3>";
-        groups[g].sort((a,b)=>b.pts-a.pts);
-        groups[g].forEach(t=>{
-            html+=`<div>${t.name} ${t.pts} pts</div>`;
-        });
-    });
-    document.getElementById("table").innerHTML=html;
+let html="";
+Object.keys(groups).forEach(g=>{
+html+="<h3>Group "+g+"</h3>";
+groups[g].forEach(t=>{
+html+=`<div>${t.name} ${t.pts} pts</div>`;
+});
+});
+document.getElementById("table").innerHTML=html;
 }
 
-function nextMatchday(){
-    let match = {home:teams[0],away:teams[1],hg:0,ag:0,log:[]};
-    startMatch(match);
+// ================= ENGINE =================
+function teamPower(team){
+let a=0,f=0,d=0,s=0;
+
+team.players.forEach(p=>{
+a+=p.att;
+f+=p.fin;
+d+=p.def;
+s+=p.stam;
+});
+
+return {
+attack:a/team.players.length,
+fin:f/team.players.length,
+def:d/team.players.length,
+stam:s/team.players.length
+};
 }
 
-function startMatch(m){
-    currentMatch=m;
-    show("match");
-    document.getElementById("matchTitle").innerText=m.home.name+" vs "+m.away.name;
-
-    let minute=0;
-    interval=setInterval(()=>{
-        minute++;
-        simulate(m);
-        updateUI(m);
-        if(minute>90){clearInterval(interval);}
-    },300);
+function xG(att,def){
+return (att.attack*att.fin*att.stam) /
+((def.def*def.stam)+1);
 }
 
-function simulate(m){
-    let h=m.home.rating;
-    let a=m.away.rating;
-    let ph=h/(h+a);
+// ================= MATCH =================
+function startMatch(a,b){
 
-    if(Math.random()<0.08){
-        if(Math.random()<ph){m.hg++; m.log.push("⚽ HOME GOAL");}
-        else {m.ag++; m.log.push("⚽ AWAY GOAL");}
-    }
+match={a,b,ga:0,gb:0,min:0,log:[],subs:false};
+
+show("match");
+document.getElementById("title").innerText=
+a.name+" vs "+b.name;
+
+interval=setInterval(sim,180);
 }
 
-function updateUI(m){
-    document.getElementById("score").innerText=m.hg+" - "+m.ag;
-    document.getElementById("log").innerHTML=m.log.slice(-6).join("<br>");
-    let b=document.getElementById("ball");
-    b.style.left=Math.random()*90+"%";
-    b.style.top=Math.random()*90+"%";
+function sim(){
+
+match.min++;
+
+let A=teamPower(match.a);
+let B=teamPower(match.b);
+
+let aChance=xG(A,B);
+let bChance=xG(B,A);
+
+// fatigue drop
+A.stam-=0.05;
+B.stam-=0.05;
+
+// substitution trigger
+if(match.min===60 && !match.subs){
+match.subs=true;
+match.log.push("🔁 Tactical substitutions made");
+A.attack+=3;
+B.attack+=3;
+}
+
+// goal logic
+if(Math.random()<0.10){
+
+if(Math.random()<aChance/(aChance+bChance)){
+match.ga++;
+match.log.push("⚽ "+match.a.players[0].name+" GOAL!");
+}else{
+match.gb++;
+match.log.push("⚽ "+match.b.players[0].name+" GOAL!");
+}
+}
+
+update();
+
+if(match.min>90) clearInterval(interval);
+}
+
+// ================= UI =================
+function update(){
+document.getElementById("score").innerText=
+match.ga+" - "+match.gb;
+
+document.getElementById("log").innerHTML=
+match.log.slice(-6).join("<br>");
+}
+
+// ================= FLOW =================
+function playMatch(){
+startMatch(TEAMS[0],TEAMS[1]);
 }
 
 function endMatch(){
-    clearInterval(interval);
-    show("groups");
-    renderGroups();
+clearInterval(interval);
+show("groups");
+renderGroups();
 }
 
+// ================= UTIL =================
 function show(id){
-    document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-    document.getElementById(id).classList.add("active");
+document.querySelectorAll(".screen")
+.forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
 }
 
 init();
+
 </script>
 
 </body>
 </html>
+q
