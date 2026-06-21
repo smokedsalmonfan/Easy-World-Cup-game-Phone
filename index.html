@@ -2,18 +2,304 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>TEST</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WC MANAGER V15</title>
+
+<style>
+body{
+margin:0;
+font-family:"Courier New", monospace;
+background:#050816;
+color:#00ff99;
+text-align:center;
+}
+
+body::before{
+content:"";
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:repeating-linear-gradient(
+0deg,
+rgba(255,255,255,0.03),
+rgba(255,255,255,0.03) 1px,
+transparent 1px,
+transparent 3px
+);
+pointer-events:none;
+z-index:999;
+}
+
+.screen{display:none;padding:10px;}
+.screen.active{display:block;}
+
+header{
+background:#0b1b3a;
+padding:10px;
+color:#00e5ff;
+text-shadow:0 0 10px #00e5ff;
+font-weight:bold;
+letter-spacing:2px;
+}
+
+.card{
+background:#0d1025;
+border:1px solid #00ff99;
+margin:6px;
+padding:10px;
+cursor:pointer;
+box-shadow:0 0 6px #00ff99;
+}
+
+.btn{
+background:#111a3a;
+border:1px solid #00e5ff;
+color:#00e5ff;
+padding:10px;
+margin:5px;
+box-shadow:0 0 8px #00e5ff;
+}
+
+.score{
+font-size:42px;
+color:#ff00ff;
+text-shadow:0 0 10px #ff00ff;
+margin:10px;
+}
+
+.log{
+height:160px;
+overflow:auto;
+text-align:left;
+background:#05060f;
+border:1px solid #00ff99;
+padding:8px;
+font-size:13px;
+}
+
+.bar{
+height:10px;
+background:linear-gradient(90deg,#00ff99,#00e5ff);
+}
+</style>
 </head>
+
 <body>
 
-<h1>TEST PAGE</h1>
+<div id="menu" class="screen active">
+<header>⚽ WC MANAGER V15 ⚽</header>
+<h3>Select Team</h3>
+<div id="teamList"></div>
+</div>
+
+<div id="game" class="screen">
+<header id="matchTitle"></header>
+
+<div>Minute: <span id="minute">0</span></div>
+
+<div style="margin:10px;">
+Possession
+<div id="posBar" class="bar" style="width:50%"></div>
+</div>
+
+<div class="score" id="score">0 - 0</div>
+
+<button class="btn" onclick="tactic('attack')">ATTACK</button>
+<button class="btn" onclick="tactic('balanced')">BALANCED</button>
+<button class="btn" onclick="tactic('defend')">DEFEND</button>
+
+<div class="log" id="log"></div>
+
+<button class="btn" onclick="exitMatch()">EXIT</button>
+</div>
 
 <script>
-alert("JS LOADED OK");
 
-console.log("Game script running");
+/* ================= SAFE FLAGS ================= */
+const FLAGS={
+Brazil:"🇧🇷",Argentina:"🇦🇷",France:"🇫🇷",England:"🏴",
+Germany:"🇩🇪",Spain:"🇪🇸",Portugal:"🇵🇹",Italy:"🇮🇹",
+Netherlands:"🇳🇱",USA:"🇺🇸",Japan:"🇯🇵"
+};
 
-document.body.innerHTML += "<p>ENGINE ACTIVE</p>";
+const NATIONS=Object.keys(FLAGS);
+
+/* ================= STATE ================= */
+let teams=[];
+let player=0;
+let match=null;
+let timer=null;
+
+/* ================= INIT ================= */
+window.onload=()=>{
+teams=NATIONS.map(n=>makeTeam(n));
+drawTeams();
+};
+
+function makeTeam(n){
+return{
+name:n,
+flag:FLAGS[n],
+att:65+Math.random()*25,
+mid:60+Math.random()*25,
+def:60+Math.random()*25,
+players:[{n:"ST",a:80},{n:"CM",a:70},{n:"CB",a:65}]
+};
+}
+
+/* ================= UI ================= */
+function drawTeams(){
+let box=document.getElementById("teamList");
+teams.forEach((t,i)=>{
+let d=document.createElement("div");
+d.className="card";
+d.innerHTML=t.flag+" "+t.name;
+d.onclick=()=>start(i);
+box.appendChild(d);
+});
+}
+
+function show(id){
+document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
+
+/* ================= MATCH START ================= */
+function start(i){
+
+player=i;
+show("game");
+
+let a=teams[i];
+let b=teams[(i+1)%teams.length];
+
+match={
+a,b,
+ga:0,gb:0,
+min:0,
+pos:50,
+tactic:"balanced",
+stateA:{p:30,f:0,m:0},
+stateB:{p:30,f:0,m:0},
+log:[]
+};
+
+document.getElementById("matchTitle").innerText=
+a.flag+" "+a.name+" vs "+b.flag+" "+b.name;
+
+clearInterval(timer);
+timer=setInterval(loop,160);
+}
+
+/* ================= POWER ================= */
+function power(t){
+return t.att*0.5+t.mid*0.3+t.def*0.2;
+}
+
+/* ================= TACTIC ================= */
+function tactic(t){
+match.tactic=t;
+log("TACTIC: "+t);
+}
+
+/* ================= LOG ================= */
+function log(t){
+match.log.push(t);
+if(match.log.length>6) match.log.shift();
+}
+
+/* ================= MAIN LOOP ================= */
+function loop(){
+
+match.min++;
+document.getElementById("minute").innerText=match.min;
+
+let A=match.a,B=match.b;
+
+let pA=power(A),pB=power(B);
+
+/* tactics */
+if(match.tactic==="attack")pA*=1.15;
+if(match.tactic==="defend")pA*=0.9;
+
+/* possession */
+let total=pA+pB;
+let pos=pA/total;
+
+pos+=match.stateA.m- match.stateB.m;
+pos=Math.max(0.25,Math.min(0.75,pos));
+
+match.pos=pos*100;
+
+/* pressure */
+match.stateA.p+=pos*2;
+match.stateB.p+=(1-pos)*2;
+
+/* fatigue */
+match.stateA.f+=0.2;
+match.stateB.f+=0.2;
+
+/* chance */
+function chance(a,d,p,f){
+let c=a/(a+d);
+c*=p/100;
+c*=1-f/200;
+return c;
+}
+
+let cA=chance(pA,pB,match.stateA.p,match.stateA.f);
+let cB=chance(pB,pA,match.stateB.p,match.stateB.f);
+
+/* event engine */
+if(Math.random()<0.1){
+
+if(Math.random()<cA){
+
+if(Math.random()<0.35){
+match.ga++;
+log("⚽ "+A.flag+" GOAL");
+match.stateA.m+=3;
+match.stateB.m-=2;
+}else log("❌ "+A.name+" miss");
+
+}else if(Math.random()<cB*0.6){
+
+if(Math.random()<0.3){
+match.gb++;
+log("⚽ "+B.flag+" COUNTER GOAL");
+match.stateB.m+=3;
+match.stateA.m-=2;
+}else log("❌ counter miss");
+}
+
+}
+
+/* decay */
+match.stateA.m*=0.97;
+match.stateB.m*=0.97;
+
+/* UI */
+document.getElementById("score").innerText=
+match.ga+" - "+match.gb;
+
+document.getElementById("posBar").style.width=
+match.pos+"%";
+
+document.getElementById("log").innerHTML=
+match.log.join("<br>");
+
+if(match.min>=90){
+clearInterval(timer);
+log("FULL TIME");
+}
+}
+
+/* ================= EXIT ================= */
+function exitMatch(){
+clearInterval(timer);
+show("menu");
+}
+
 </script>
 
 </body>
