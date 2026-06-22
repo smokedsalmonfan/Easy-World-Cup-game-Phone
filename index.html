@@ -1,339 +1,611 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WC MANAGER V18</title>
-
-<style>
-body{
-margin:0;
-font-family:"Courier New", monospace;
-background:#050816;
-color:#00ff99;
-text-align:center;
-}
-
-body::before{
-content:"";
-position:fixed;
-inset:0;
-background:repeating-linear-gradient(
-0deg,
-rgba(255,255,255,0.03),
-rgba(255,255,255,0.03) 1px,
-transparent 1px,
-transparent 3px
-);
-pointer-events:none;
-}
-
-.screen{display:none;padding:10px;}
-.screen.active{display:block;}
-
-header{
-background:#0b1b3a;
-padding:10px;
-color:#00e5ff;
-text-shadow:0 0 10px #00e5ff;
-font-weight:bold;
-letter-spacing:2px;
-}
-
-.card{
-background:#0d1025;
-border:1px solid #00ff99;
-margin:6px;
-padding:10px;
-cursor:pointer;
-}
-
-.btn{
-background:#111a3a;
-border:1px solid #00e5ff;
-color:#00e5ff;
-padding:10px;
-margin:5px;
-box-shadow:0 0 8px #00e5ff;
-}
-
-.score{
-font-size:40px;
-color:#ff00ff;
-text-shadow:0 0 10px #ff00ff;
-margin:10px;
-}
-
-/* ================= PITCH ================= */
-#pitch{
-width:90%;
-max-width:380px;
-height:260px;
-margin:10px auto;
-border:3px solid #00ff99;
-background:linear-gradient(#0a5c2a,#0c7a36);
-position:relative;
-overflow:hidden;
-box-shadow:0 0 15px #00ff99;
-}
-
-.line{
-position:absolute;
-background:white;
-opacity:0.5;
-}
-
-.midline{
-width:100%;
-height:2px;
-top:50%;
-}
-
-.box{
-width:30%;
-height:60%;
-top:20%;
-border:2px solid white;
-position:absolute;
-}
-
-.left{left:0;}
-.right{right:0;}
-
-.ball{
-width:12px;
-height:12px;
-border-radius:50%;
-background:yellow;
-position:absolute;
-box-shadow:0 0 10px yellow;
-}
-
-.player{
-width:10px;
-height:10px;
-border-radius:50%;
-background:white;
-position:absolute;
-opacity:0.6;
-}
-
-.log{
-height:120px;
-overflow:auto;
-text-align:left;
-background:#05060f;
-border:1px solid #00ff99;
-padding:6px;
-font-size:12px;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>80s World Cup Manager 2026</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: #000;
+      color: #0f0;
+      margin: 0;
+      padding: 10px;
+      font-size: 14px;
+      line-height: 1.3;
+      image-rendering: pixelated;
+    }
+    h1, h2, h3 {
+      color: #f0f;
+      text-align: center;
+      margin: 5px 0;
+    }
+    button {
+      background: #00f;
+      color: #fff;
+      border: 2px solid #0ff;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 6px 10px;
+      margin: 4px;
+      cursor: pointer;
+    }
+    button:active {
+      background: #f0f;
+    }
+    .screen {
+      display: none;
+    }
+    .screen.active {
+      display: block;
+    }
+    .team-list, .player-list {
+      list-style: none;
+      padding: 0;
+    }
+    .team-list li, .player-list li {
+      margin: 4px 0;
+      padding: 4px;
+      border: 1px solid #0ff;
+      cursor: pointer;
+    }
+    .team-list li:hover, .player-list li:hover {
+      background: #004;
+    }
+    .match {
+      border: 2px solid #f0f;
+      padding: 8px;
+      margin: 8px 0;
+    }
+    .log {
+      height: 100px;
+      overflow-y: auto;
+      border: 1px solid #0f0;
+      padding: 4px;
+      font-size: 12px;
+      background: #111;
+    }
+    .tactics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .tactics button {
+      font-size: 12px;
+    }
+    .pitch {
+      width: 100%;
+      height: 180px;
+      background: #060;
+      border: 2px solid #fff;
+      position: relative;
+      margin: 8px 0;
+    }
+    .player {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      text-align: center;
+      font-size: 10px;
+      line-height: 20px;
+      color: #000;
+    }
+    .player.home {
+      background: #0ff;
+    }
+    .player.away {
+      background: #f0f;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      font-size: 12px;
+      margin: 8px 0;
+    }
+    .stats div {
+      border: 1px solid #0ff;
+      padding: 4px;
+    }
+    .goal-animation {
+      animation: goalFlash 1s ease;
+    }
+    @keyframes goalFlash {
+      0% { color: #fff; background: #f00; }
+      50% { color: #000; background: #ff0; }
+      100% { color: #0f0; background: #000; }
+    }
+    @media (max-width: 600px) {
+      body { font-size: 12px; }
+      button { font-size: 12px; padding: 4px 8px; }
+      .pitch { height: 150px; }
+    }
+  </style>
 </head>
-
 <body>
+  <!-- タイトル画面 -->
+  <div id="screen-title" class="screen active">
+    <h1>WORLD CUP MANAGER 2026</h1>
+    <p style="text-align:center;">80s STYLE FOOTBALL SIM</p>
+    <br>
+    <button onclick="showScreen('screen-team-select')">START GAME</button>
+    <button onclick="showScreen('screen-about')">ABOUT</button>
+  </div>
 
-<div id="menu" class="screen active">
-<header>⚽ WC MANAGER V18 ⚽</header>
-<h3>Select Team</h3>
-<div id="teams"></div>
-</div>
+  <!-- チーム選択画面 -->
+  <div id="screen-team-select" class="screen">
+    <h2>SELECT YOUR TEAM</h2>
+    <ul class="team-list" id="team-list">
+      <!-- JSで生成 -->
+    </ul>
+    <button onclick="showScreen('screen-title')">BACK</button>
+  </div>
 
-<div id="game" class="screen">
-<header id="title"></header>
+  <!-- メインゲーム画面（グループステージ） -->
+  <div id="screen-group-stage" class="screen">
+    <h2 id="group-stage-title">GROUP STAGE</h2>
+    <div id="group-standings"></div>
+    <div id="group-fixtures"></div>
+    <button onclick="showScreen('screen-title')">QUIT</button>
+  </div>
 
-<div>Score</div>
-<div class="score" id="score">0 - 0</div>
+  <!-- 試合画面 -->
+  <div id="screen-match" class="screen">
+    <h2 id="match-title">MATCH</h2>
+    <div id="match-info"></div>
+    <div class="pitch" id="pitch">
+      <!-- ピッチ上の選手をJSで配置 -->
+    </div>
+    <div class="stats" id="match-stats">
+      <div>Shots: <span id="shots-home">0</span> - <span id="shots-away">0</span></div>
+      <div>Possession: <span id="possession-home">50</span>% - <span id="possession-away">50</span>%</div>
+    </div>
+    <div class="log" id="match-log"></div>
+    <div class="tactics">
+      <button onclick="setTactic('balanced')">BALANCED</button>
+      <button onclick="setTactic('defensive')">DEFENSIVE</button>
+      <button onclick="setTactic('attacking')">ATTACKING</button>
+      <button onclick="makeSub()">MAKE SUB</button>
+      <button onclick="setPiece('corner')">CORNER</button>
+      <button onclick="setPiece('free')">FREE KICK</button>
+    </div>
+    <button onclick="simulateNextMinute()">NEXT MINUTE</button>
+    <button onclick="finishMatch()">FINISH MATCH</button>
+  </div>
 
-<div id="pitch">
-<div class="line midline"></div>
-<div class="box left"></div>
-<div class="box right"></div>
+  <!-- 結果画面 -->
+  <div id="screen-result" class="screen">
+    <h2>MATCH RESULT</h2>
+    <div id="result-info"></div>
+    <button onclick="returnToGroupStage()">CONTINUE</button>
+  </div>
 
-<div class="ball" id="ball"></div>
-</div>
+  <!-- ノックアウト・決勝などは簡略化 -->
+  <div id="screen-knockout" class="screen">
+    <h2>KNOCKOUT STAGE</h2>
+    <div id="knockout-bracket"></div>
+    <button onclick="simulateKnockout()">SIMULATE KNOCKOUT</button>
+    <button onclick="showScreen('screen-title')">QUIT</button>
+  </div>
 
-<button class="btn" onclick="tactic('attack')">ATTACK</button>
-<button class="btn" onclick="tactic('balanced')">BALANCED</button>
-<button class="btn" onclick="tactic('defend')">DEFEND</button>
+  <!-- 優勝画面 -->
+  <div id="screen-champion" class="screen">
+    <h2>WORLD CUP CHAMPION!</h2>
+    <div id="champion-info"></div>
+    <button onclick="showScreen('screen-title')">MENU</button>
+  </div>
 
-<div class="log" id="log"></div>
+  <!-- 説明画面 -->
+  <div id="screen-about" class="screen">
+    <h2>ABOUT</h2>
+    <p>2026 FIFA World Cup™ Manager Simulator</p>
+    <p>Based on real qualified teams and players.</p>
+    <p>Designed for mobile browsers.</p>
+    <button onclick="showScreen('screen-title')">BACK</button>
+  </div>
 
-<button class="btn" onclick="exitMatch()">EXIT</button>
-</div>
+  <script>
+    // 画面制御
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
 
-<script>
+    // グローバル状態
+    let userTeam = null;
+    let currentGroup = null;
+    let currentMatch = null;
+    let matchTime = 0;
+    let matchEvents = [];
+    let userTactic = 'balanced';
+    let userSubsUsed = 0;
+    let shotsHome = 0, shotsAway = 0;
+    let possessionHome = 50, possessionAway = 50;
 
-/* ================= TEAMS ================= */
-const FLAGS={
-Brazil:"🇧🇷",Argentina:"🇦🇷",France:"🇫🇷",England:"🏴",
-Germany:"🇩🇪",Spain:"🇪🇸",Portugal:"🇵🇹",Italy:"🇮🇹",
-Netherlands:"🇳🇱",USA:"🇺🇸",Japan:"🇯🇵"
-};
+    // 2026年出場48チーム（実際の出場国を反映）
+    const teams = [
+      // グループA
+      { id: 'CZE', name: 'Czechia', group: 'A', rating: 76 },
+      { id: 'MEX', name: 'Mexico', group: 'A', rating: 82 },
+      { id: 'RSA', name: 'South Africa', group: 'A', rating: 72 },
+      { id: 'KOR', name: 'South Korea', group: 'A', rating: 80 },
+      // グループB
+      { id: 'BIH', name: 'Bosnia-Herzegovina', group: 'B', rating: 75 },
+      { id: 'CAN', name: 'Canada', group: 'B', rating: 78 },
+      { id: 'QAT', name: 'Qatar', group: 'B', rating: 74 },
+      { id: 'SUI', name: 'Switzerland', group: 'B', rating: 84 },
+      // グループC
+      { id: 'BRA', name: 'Brazil', group: 'C', rating: 95 },
+      { id: 'HAI', name: 'Haiti', group: 'C', rating: 68 },
+      { id: 'MAR', name: 'Morocco', group: 'C', rating: 83 },
+      { id: 'SCO', name: 'Scotland', group: 'C', rating: 79 },
+      // グループD
+      { id: 'AUS', name: 'Australia', group: 'D', rating: 77 },
+      { id: 'PAR', name: 'Paraguay', group: 'D', rating: 73 },
+      { id: 'TUR', name: 'Türkiye', group: 'D', rating: 81 },
+      { id: 'USA', name: 'United States', group: 'D', rating: 85 },
+      // グループE
+      { id: 'CUW', name: 'Curaçao', group: 'E', rating: 70 },
+      { id: 'ECU', name: 'Ecuador', group: 'E', rating: 78 },
+      { id: 'GER', name: 'Germany', group: 'E', rating: 90 },
+      { id: 'CIV', name: 'Ivory Coast', group: 'E', rating: 80 },
+      // グループF
+      { id: 'JPN', name: 'Japan', group: 'F', rating: 84 },
+      { id: 'NED', name: 'Netherlands', group: 'F', rating: 88 },
+      { id: 'SWE', name: 'Sweden', group: 'F', rating: 82 },
+      { id: 'TUN', name: 'Tunisia', group: 'F', rating: 76 },
+      // グループG
+      { id: 'BEL', name: 'Belgium', group: 'G', rating: 86 },
+      { id: 'EGY', name: 'Egypt', group: 'G', rating: 79 },
+      { id: 'IRN', name: 'Iran', group: 'G', rating: 78 },
+      { id: 'NZL', name: 'New Zealand', group: 'G', rating: 69 },
+      // グループH
+      { id: 'ALG', name: 'Algeria', group: 'H', rating: 81 },
+      { id: 'ARG', name: 'Argentina', group: 'H', rating: 94 },
+      { id: 'AUT', name: 'Austria', group: 'H', rating: 82 },
+      { id: 'JOR', name: 'Jordan', group: 'H', rating: 71 },
+      // グループI
+      { id: 'FRA', name: 'France', group: 'I', rating: 96 },
+      { id: 'IRQ', name: 'Iraq', group: 'I', rating: 72 },
+      { id: 'NOR', name: 'Norway', group: 'I', rating: 83 },
+      { id: 'SEN', name: 'Senegal', group: 'I', rating: 84 },
+      // グループJ
+      { id: 'CPV', name: 'Cape Verde', group: 'J', rating: 73 },
+      { id: 'COL', name: 'Colombia', group: 'J', rating: 85 },
+      { id: 'ESP', name: 'Spain', group: 'J', rating: 89 },
+      { id: 'UZB', name: 'Uzbekistan', group: 'J', rating: 74 },
+      // グループK
+      { id: 'CRO', name: 'Croatia', group: 'K', rating: 87 },
+      { id: 'ENG', name: 'England', group: 'K', rating: 92 },
+      { id: 'POR', name: 'Portugal', group: 'K', rating: 91 },
+      { id: 'URU', name: 'Uruguay', group: 'K', rating: 88 },
+      // グループL
+      { id: 'COD', name: 'Congo DR', group: 'L', rating: 80 },
+      { id: 'DEN', name: 'Denmark', group: 'L', rating: 84 },
+      { id: 'GHA', name: 'Ghana', group: 'L', rating: 81 },
+      { id: 'POL', name: 'Poland', group: 'L', rating: 83 }
+    ];
 
-const NATIONS=Object.keys(FLAGS);
+    // 主要選手データ（大幅拡張：各チーム5〜7人）
+    const players = {
+      USA: [
+        { name: 'Christian Pulisic', pos: 'FW', rating: 88 },
+        { name: 'Weston McKennie', pos: 'MF', rating: 85 },
+        { name: 'Chris Richards', pos: 'DF', rating: 83 },
+        { name: 'Timothy Weah', pos: 'FW', rating: 82 },
+        { name: 'Gio Reyna', pos: 'MF', rating: 84 },
+        { name: 'Matt Turner', pos: 'GK', rating: 82 },
+        { name: 'Sergiño Dest', pos: 'DF', rating: 81 }
+      ],
+      ARG: [
+        { name: 'Lionel Messi', pos: 'FW', rating: 92 },
+        { name: 'Lautaro Martínez', pos: 'FW', rating: 88 },
+        { name: 'Rodrigo De Paul', pos: 'MF', rating: 86 },
+        { name: 'Emiliano Martínez', pos: 'GK', rating: 87 },
+        { name: 'Cristian Romero', pos: 'DF', rating: 85 },
+        { name: 'Enzo Fernández', pos: 'MF', rating: 84 }
+      ],
+      BRA: [
+        { name: 'Vinicius Jr', pos: 'FW', rating: 93 },
+        { name: 'Neymar', pos: 'FW', rating: 90 },
+        { name: 'Alisson', pos: 'GK', rating: 91 },
+        { name: 'Marquinhos', pos: 'DF', rating: 88 },
+        { name: 'Casemiro', pos: 'MF', rating: 87 },
+        { name: 'Richarlison', pos: 'FW', rating: 85 }
+      ],
+      FRA: [
+        { name: 'Kylian Mbappé', pos: 'FW', rating: 95 },
+        { name: 'Aurélien Tchouaméni', pos: 'MF', rating: 89 },
+        { name: 'William Saliba', pos: 'DF', rating: 88 },
+        { name: 'Mike Maignan', pos: 'GK', rating: 88 },
+        { name: 'Antoine Griezmann', pos: 'FW', rating: 87 },
+        { name: 'Eduardo Camavinga', pos: 'MF', rating: 86 }
+      ],
+      ENG: [
+        { name: 'Harry Kane', pos: 'FW', rating: 91 },
+        { name: 'Jude Bellingham', pos: 'MF', rating: 92 },
+        { name: 'Phil Foden', pos: 'MF', rating: 90 },
+        { name: 'Declan Rice', pos: 'MF', rating: 88 },
+        { name: 'Bukayo Saka', pos: 'FW', rating: 88 },
+        { name: 'Jordan Pickford', pos: 'GK', rating: 85 }
+      ],
+      GER: [
+        { name: 'Jamal Musiala', pos: 'MF', rating: 90 },
+        { name: 'Florian Wirtz', pos: 'MF', rating: 88 },
+        { name: 'Kai Havertz', pos: 'FW', rating: 86 },
+        { name: 'Joshua Kimmich', pos: 'MF', rating: 89 },
+        { name: 'Manuel Neuer', pos: 'GK', rating: 87 }
+      ],
+      ESP: [
+        { name: 'Pedri', pos: 'MF', rating: 89 },
+        { name: 'Gavi', pos: 'MF', rating: 87 },
+        { name: 'Rodri', pos: 'MF', rating: 90 },
+        { name: 'Alvaro Morata', pos: 'FW', rating: 84 },
+        { name: 'Dani Olmo', pos: 'MF', rating: 86 }
+      ],
+      POR: [
+        { name: 'Cristiano Ronaldo', pos: 'FW', rating: 88 },
+        { name: 'Bernardo Silva', pos: 'MF', rating: 89 },
+        { name: 'Bruno Fernandes', pos: 'MF', rating: 88 },
+        { name: 'Rúben Dias', pos: 'DF', rating: 87 },
+        { name: 'Diogo Costa', pos: 'GK', rating: 86 }
+      ],
+      NED: [
+        { name: 'Virgil van Dijk', pos: 'DF', rating: 88 },
+        { name: 'Frenkie de Jong', pos: 'MF', rating: 87 },
+        { name: 'Cody Gakpo', pos: 'FW', rating: 84 },
+        { name: 'Memphis Depay', pos: 'FW', rating: 83 },
+        { name: 'Matthijs de Ligt', pos: 'DF', rating: 85 }
+      ],
+      BEL: [
+        { name: 'Kevin De Bruyne', pos: 'MF', rating: 91 },
+        { name: 'Romelu Lukaku', pos: 'FW', rating: 85 },
+        { name: 'Thibaut Courtois', pos: 'GK', rating: 90 },
+        { name: 'Youri Tielemans', pos: 'MF', rating: 84 },
+        { name: 'Jérémy Doku', pos: 'FW', rating: 83 }
+      ],
+      // 残りのチームも同様に追加可能（ここでは代表的なものだけ）
+      MEX: [
+        { name: 'Hirving Lozano', pos: 'FW', rating: 82 },
+        { name: 'Edson Álvarez', pos: 'MF', rating: 83 },
+        { name: 'Guillermo Ochoa', pos: 'GK', rating: 80 },
+        { name: 'Raúl Jiménez', pos: 'FW', rating: 81 },
+        { name: 'Héctor Herrera', pos: 'MF', rating: 80 }
+      ],
+      JPN: [
+        { name: 'Takefusa Kubo', pos: 'FW', rating: 84 },
+        { name: 'Kaoru Mitoma', pos: 'FW', rating: 83 },
+        { name: 'Wataru Endo', pos: 'MF', rating: 82 },
+        { name: 'Hiroki Ito', pos: 'DF', rating: 80 },
+        { name: 'Daizen Maeda', pos: 'FW', rating: 79 }
+      ],
+      // 以下、必要に応じて他のチームも追加
+      CRO: [
+        { name: 'Luka Modrić', pos: 'MF', rating: 87 },
+        { name: 'Joško Gvardiol', pos: 'DF', rating: 86 },
+        { name: 'Marcelo Brozović', pos: 'MF', rating: 85 },
+        { name: 'Andrej Kramarić', pos: 'FW', rating: 83 },
+        { name: 'Dominik Livaković', pos: 'GK', rating: 82 }
+      ],
+      URU: [
+        { name: 'Federico Valverde', pos: 'MF', rating: 88 },
+        { name: 'Darwin Núñez', pos: 'FW', rating: 85 },
+        { name: 'Ronald Araújo', pos: 'DF', rating: 86 },
+        { name: 'Rodrigo Bentancur', pos: 'MF', rating: 84 },
+        { name: 'Luis Suárez', pos: 'FW', rating: 83 }
+      ]
+    };
 
-let teams=[];
-let player=0;
-let match=null;
-let timer=null;
+    // チーム選択画面の初期化
+    function initTeamSelect() {
+      const list = document.getElementById('team-list');
+      list.innerHTML = '';
+      teams.forEach(team => {
+        const li = document.createElement('li');
+        li.textContent = `${team.name} (Group ${team.group})`;
+        li.onclick = () => selectTeam(team);
+        list.appendChild(li);
+      });
+    }
 
-/* ================= INIT ================= */
-window.onload=()=>{
-teams=NATIONS.map(n=>makeTeam(n));
-renderTeams();
-};
+    function selectTeam(team) {
+      userTeam = team;
+      currentGroup = teams.filter(t => t.group === team.group);
+      showScreen('screen-group-stage');
+      updateGroupStage();
+    }
 
-function makeTeam(n){
-return{
-name:n,
-flag:FLAGS[n],
-att:60+Math.random()*30,
-mid:60+Math.random()*30,
-def:60+Math.random()*30
-};
-}
+    // グループステージの表示
+    function updateGroupStage() {
+      document.getElementById('group-stage-title').textContent = `GROUP ${userTeam.group}`;
+      const standings = document.getElementById('group-standings');
+      standings.innerHTML = '<h3>STANDINGS</h3>';
+      // 簡易順位表（ここでは単純にrating順）
+      currentGroup.sort((a, b) => b.rating - a.rating);
+      currentGroup.forEach((t, i) => {
+        standings.innerHTML += `<div>${i+1}. ${t.name} (${t.rating})</div>`;
+      });
 
-/* ================= UI ================= */
-function renderTeams(){
-let box=document.getElementById("teams");
-teams.forEach((t,i)=>{
-let d=document.createElement("div");
-d.className="card";
-d.innerHTML=t.flag+" "+t.name;
-d.onclick=()=>start(i);
-box.appendChild(d);
-});
-}
+      const fixtures = document.getElementById('group-fixtures');
+      fixtures.innerHTML = '<h3>FIXTURES</h3>';
+      // 簡易対戦カード（ユーザーチーム vs 他3チーム）
+      currentGroup.filter(t => t.id !== userTeam.id).forEach(opp => {
+        const div = document.createElement('div');
+        div.className = 'match';
+        div.innerHTML = `${userTeam.name} vs ${opp.name}`;
+        const btn = document.createElement('button');
+        btn.textContent = 'PLAY MATCH';
+        btn.onclick = () => startMatch(opp);
+        div.appendChild(btn);
+        fixtures.appendChild(div);
+      });
+    }
 
-function show(id){
-document.querySelectorAll(".screen")
-.forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
+    // 試合開始
+    function startMatch(opponent) {
+      currentMatch = { home: userTeam, away: opponent, score: [0, 0] };
+      matchTime = 0;
+      matchEvents = [];
+      userSubsUsed = 0;
+      userTactic = 'balanced';
+      shotsHome = shotsAway = 0;
+      possessionHome = possessionAway = 50;
+      document.getElementById('match-title').textContent = `${userTeam.name} vs ${opponent.name}`;
+      document.getElementById('match-info').innerHTML = `Tactic: ${userTactic.toUpperCase()}`;
+      document.getElementById('match-log').innerHTML = 'Match started.<br>';
+      updateStats();
+      drawPitch();
+      showScreen('screen-match');
+    }
 
-/* ================= MATCH ================= */
-function start(i){
+    // ピッチ上に選手を描画（簡易4-4-2）
+    function drawPitch() {
+      const pitch = document.getElementById('pitch');
+      pitch.innerHTML = '';
+      // ホーム（左側）
+      const homePositions = [
+        { x: 10, y: 50 }, // GK
+        { x: 25, y: 20 }, { x: 25, y: 50 }, { x: 25, y: 80 }, // DF
+        { x: 40, y: 20 }, { x: 40, y: 50 }, { x: 40, y: 80 }, // MF
+        { x: 55, y: 35 }, { x: 55, y: 65 } // FW
+      ];
+      homePositions.forEach((pos, i) => {
+        const p = document.createElement('div');
+        p.className = 'player home';
+        p.style.left = `${pos.x}%`;
+        p.style.top = `${pos.y}%`;
+        p.textContent = i+1;
+        pitch.appendChild(p);
+      });
+      // アウェイ（右側）
+      const awayPositions = [
+        { x: 90, y: 50 }, // GK
+        { x: 75, y: 20 }, { x: 75, y: 50 }, { x: 75, y: 80 }, // DF
+        { x: 60, y: 20 }, { x: 60, y: 50 }, { x: 60, y: 80 }, // MF
+        { x: 45, y: 35 }, { x: 45, y: 65 } // FW
+      ];
+      awayPositions.forEach((pos, i) => {
+        const p = document.createElement('div');
+        p.className = 'player away';
+        p.style.left = `${pos.x}%`;
+        p.style.top = `${pos.y}%`;
+        p.textContent = i+1;
+        pitch.appendChild(p);
+      });
+    }
 
-player=i;
-show("game");
+    function setTactic(tactic) {
+      userTactic = tactic;
+      document.getElementById('match-info').innerHTML = `Tactic: ${tactic.toUpperCase()}`;
+      addLog(`Changed tactic to ${tactic}.`);
+    }
 
-let A=teams[i];
-let B=teams[(i+1)%teams.length];
+    function setPiece(type) {
+      addLog(`${type.toUpperCase()} kick taken...`);
+      // 簡易セットプレー効果（確率でゴール）
+      if (Math.random() < 0.15) {
+        currentMatch.score[0]++;
+        addLog(`GOAL! ${userTeam.name} scores from the ${type}!`, true);
+        shotsHome++;
+        updateStats();
+      }
+    }
 
-match={
-a:A,b:B,
-ga:0,gb:0,
-min:0,
-ballX:50,
-ballY:50,
-log:[],
-tactic:"balanced"
-};
+    function makeSub() {
+      if (userSubsUsed >= 3) {
+        addLog('No substitutions left.');
+        return;
+      }
+      userSubsUsed++;
+      addLog('Substitution made. Fresh legs on the pitch.');
+      // 簡易効果：次の5分間は攻撃力+5（ここではログだけ）
+    }
 
-document.getElementById("title").innerText=
-A.flag+" "+A.name+" vs "+B.flag+" "+B.name;
+    function simulateNextMinute() {
+      if (matchTime >= 90) {
+        addLog('Match already finished.');
+        return;
+      }
+      matchTime++;
+      addLog(`${matchTime}'`);
 
-clearInterval(timer);
-timer=setInterval(loop,200);
-}
+      // 簡易イベント生成
+      const r = Math.random();
+      if (r < 0.03) {
+        // ユーザーチーム得点
+        currentMatch.score[0]++;
+        addLog(`GOAL! ${userTeam.name} scores!`, true);
+        shotsHome++;
+      } else if (r < 0.06) {
+        // 相手得点
+        currentMatch.score[1]++;
+        addLog(`GOAL! ${currentMatch.away.name} scores!`, true);
+        shotsAway++;
+      } else if (r < 0.08) {
+        addLog('Yellow card shown.');
+      } else if (r < 0.09) {
+        addLog('RED CARD! Player sent off.');
+      } else if (r < 0.12) {
+        shotsHome++;
+        addLog('Shot by ' + userTeam.name + '... wide.');
+      } else if (r < 0.15) {
+        shotsAway++;
+        addLog('Shot by ' + currentMatch.away.name + '... saved.');
+      }
 
-/* ================= TACTIC ================= */
-function tactic(t){
-match.tactic=t;
-log("TACTIC "+t);
-}
+      // ポゼッションの変動（簡易）
+      if (Math.random() < 0.5) {
+        possessionHome = Math.min(70, possessionHome + 1);
+        possessionAway = Math.max(30, possessionAway - 1);
+      } else {
+        possessionHome = Math.max(30, possessionHome - 1);
+        possessionAway = Math.min(70, possessionAway + 1);
+      }
 
-/* ================= LOG ================= */
-function log(t){
-match.log.push(t);
-if(match.log.length>6) match.log.shift();
-}
+      if (matchTime === 45) addLog('HALF-TIME.');
+      if (matchTime === 90) addLog('FULL-TIME.');
 
-/* ================= PITCH UPDATE ================= */
-function moveBall(){
+      updateStats();
+    }
 
-let baseA=match.a.att+match.a.mid;
-let baseB=match.b.att+match.b.mid;
+    function updateStats() {
+      document.getElementById('shots-home').textContent = shotsHome;
+      document.getElementById('shots-away').textContent = shotsAway;
+      document.getElementById('possession-home').textContent = possessionHome;
+      document.getElementById('possession-away').textContent = possessionAway;
+    }
 
-if(match.tactic==="attack") baseA*=1.1;
-if(match.tactic==="defend") baseA*=0.9;
+    function finishMatch() {
+      if (matchTime < 90) matchTime = 90;
+      showScreen('screen-result');
+      const res = document.getElementById('result-info');
+      res.innerHTML = `
+        <h3>${userTeam.name} ${currentMatch.score[0]} - ${currentMatch.score[1]} ${currentMatch.away.name}</h3>
+        <p>Shots: ${shotsHome} - ${shotsAway}</p>
+        <p>Possession: ${possessionHome}% - ${possessionAway}%</p>
+        <p>Match finished.</p>
+      `;
+    }
 
-let total=baseA+baseB;
-let dir=baseA/total;
+    function returnToGroupStage() {
+      showScreen('screen-group-stage');
+      // ここで勝ち点などを更新（簡略化のためスキップ）
+    }
 
-/* ball movement left-right */
-match.ballX += (dir-0.5)*10;
+    function addLog(msg, isGoal = false) {
+      const log = document.getElementById('match-log');
+      const line = document.createElement('div');
+      if (isGoal) line.classList.add('goal-animation');
+      line.textContent = msg;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
 
-/* clamp */
-match.ballX=Math.max(5,Math.min(95,match.ballX));
-
-/* vertical randomness */
-match.ballY += (Math.random()-0.5)*15;
-match.ballY=Math.max(10,Math.min(90,match.ballY));
-
-document.getElementById("ball").style.left=match.ballX+"%";
-document.getElementById("ball").style.top=match.ballY+"%";
-
-/* zones */
-if(match.ballX>80){
-tryGoal(match.a,match.b);
-}
-if(match.ballX<20){
-tryGoal(match.b,match.a);
-}
-
-}
-
-/* ================= GOAL SYSTEM ================= */
-function tryGoal(att,def){
-
-if(Math.random()<0.08){
-
-let shot=att.att+Math.random()*40;
-let save=def.def+Math.random()*40;
-
-if(shot>save){
-if(att===match.a) match.ga++;
-else match.gb++;
-
-log("⚽ GOAL "+att.flag);
-match.ballX=50;
-match.ballY=50;
-}else{
-log("🥅 SAVE");
-match.ballX=50;
-match.ballY=50;
-}
-}
-}
-
-/* ================= LOOP ================= */
-function loop(){
-
-match.min++;
-
-moveBall();
-
-/* UI */
-document.getElementById("score").innerText=
-match.ga+" - "+match.gb;
-
-document.getElementById("log").innerHTML=
-match.log.join("<br>");
-
-if(match.min>=90){
-clearInterval(timer);
-log("FULL TIME");
-}
-}
-
-/* ================= EXIT ================= */
-function exitMatch(){
-clearInterval(timer);
-show("menu");
-}
-
-</script>
-
+    // 初期化
+    window.onload = function() {
+      initTeamSelect();
+    };
+  </script>
 </body>
 </html>
